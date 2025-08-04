@@ -1,0 +1,787 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP FastAPI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(28, 28, 30, 0.65);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            padding: 0 1rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1;
+            height: 60px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .progress-container {
+            width: 120px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #007AFF;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .message-counter {
+            background: #333;
+            color: #fff;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .message-counter.limit-reached {
+            background: #FF3B30;
+        }
+
+        .btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #444;
+        }
+
+        .btn.primary {
+            background: #007AFF;
+        }
+
+        .btn.primary:hover {
+            background: #0056CC;
+        }
+
+        .btn.danger {
+            background: #FF3B30;
+        }
+
+        .btn.danger:hover {
+            background: #CC2E26;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 80px 1rem 6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #007AFF;
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: #333;
+            color: #fff;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+
+        .message.assistant .message-time {
+            text-align: left;
+        }
+
+        .tool-indicator {
+            font-size: 0.75rem;
+            color: #999;
+            margin-left: 0.5rem;
+        }
+
+        
+
+        .tool-usage {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .tool-header {
+            background: #2a2a2a;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #fff;
+            transition: background 0.2s;
+        }
+
+        .tool-header:hover {
+            background: #3a3a3a;
+        }
+
+        .tool-header .tool-name {
+            color: #007AFF;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        }
+
+        .tool-status {
+            color: #34C759;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .tool-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: #1a1a1a;
+        }
+
+        .tool-content.expanded {
+            max-height: 500px;
+        }
+
+        .tool-toggle {
+            color: #999;
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+
+        .tool-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .tool-details {
+            padding: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #ccc;
+        }
+
+        .tool-details .tool-param {
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-details .tool-param-label {
+            color: #007AFF;
+            font-weight: 500;
+        }
+
+        .tool-details .tool-result {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+        }
+
+        .tool-details .tool-result-label {
+            color: #00CC66;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: #333;
+            padding: 1rem;
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .input-container {
+            padding: 1rem;
+            border-top: 1px solid #333;
+            background: rgba(28, 28, 30, 0.65);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .message-input {
+            flex: 1;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #fff;
+            font-size: 0.875rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .message-input::placeholder {
+            color: #999;
+        }
+
+        .message-input:disabled {
+            background: #111;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .send-btn {
+            background: #007AFF;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+            min-width: 60px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #0056CC;
+        }
+
+        .send-btn:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                height: 54px;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .header-controls {
+                gap: 0.5rem;
+            }
+
+            .progress-container {
+                width: 90px;
+            }
+
+            .chat-messages {
+                padding-top: 70px;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gram MCP Chat Demo</h1>
+        <div class="header-controls">
+            <div class="progress-container">
+                <div class="progress-bar" id="message-progress-bar"></div>
+            </div>
+            <button class="btn danger" onclick="startNewSession()">&#43;</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="empty-state" id="empty-state">
+                <h3>Welcome to the Gram MCP Chat Demo!</h3>
+                <p>Start a conversation with the AI assistant. This demo showcases the "vibe check" tools, which analyze the emotional tone of the conversation.</p>
+                <p style="margin-top: 1rem; font-size: 0.75rem; color: #666;">Each conversation is limited to 10 messages.</p>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="message-input" 
+                    class="message-input" 
+                    placeholder="Type your message..."
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        let currentSessionId = null;
+        let isTyping = false;
+        
+        const MAX_MESSAGES = 5;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load conversation history from localStorage
+            loadConversationHistory();
+            updateMessageCounter();
+        });
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            
+            // Enable/disable send button based on input and message limit
+            const sendBtn = document.getElementById('send-btn');
+            const messageInput = document.getElementById('message-input');
+            const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+            const canSend = messageInput.value.trim() && !isTyping && userMessageCount < MAX_MESSAGES;
+            sendBtn.disabled = !canSend;
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function startNewSession() {
+            currentSessionId = null;
+            conversationHistory = [];
+            saveConversationHistory();
+            displayConversation();
+            updateMessageCounter();
+            enableInput();
+        }
+
+        function loadConversationHistory() {
+            const saved = localStorage.getItem('mcp_chat_history');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    conversationHistory = data.conversationHistory || [];
+                    currentSessionId = data.sessionId || null;
+                    displayConversation();
+                } catch (error) {
+                    console.error('Error loading conversation history:', error);
+                    conversationHistory = [];
+                    currentSessionId = null;
+                }
+            }
+        }
+
+        function saveConversationHistory() {
+            const data = {
+                conversationHistory: conversationHistory,
+                sessionId: currentSessionId
+            };
+            localStorage.setItem('mcp_chat_history', JSON.stringify(data));
+        }
+
+        function displayConversation() {
+            const chatMessages = document.getElementById('chat-messages');
+            
+            if (conversationHistory.length === 0) {
+                chatMessages.innerHTML = `
+                    <div class="empty-state" id="empty-state">
+                        <h3>Welcome to MCP Chat!</h3>
+                        <p>Start a conversation with the AI assistant. Your conversation history is stored locally in your browser for privacy.</p>
+                        <p style="margin-top: 1rem; font-size: 0.75rem; color: #666;">Each conversation is limited to 5 user messages.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            chatMessages.innerHTML = '';
+            
+            conversationHistory.forEach(message => {
+                addMessageToChat(message.role, message.content, message.timestamp, false, message.toolUsage);
+            });
+        }
+
+        function addMessageToChat(role, content, timestamp, saveToHistory = true, toolUsage = null) {
+            const chatMessages = document.getElementById('chat-messages');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const time = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+            
+            let messageHTML = `<div>${content}</div>`;
+            
+            // Add tool usage if available
+            if (toolUsage) {
+                messageHTML = createToolUsageHTML(toolUsage) + messageHTML;
+            }
+            
+            messageHTML += `<div class="message-time">${toolUsage ? '<span class="tool-indicator" title="Tool Used">[Tool]</span>' : ''}</div>`;
+            messageDiv.innerHTML = messageHTML;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Save to conversation history if needed
+            if (saveToHistory) {
+                conversationHistory.push({
+                    role: role,
+                    content: content,
+                    timestamp: timestamp || new Date().toISOString(),
+                    toolUsage: toolUsage
+                });
+                saveConversationHistory();
+                updateMessageCounter();
+            }
+        }
+
+        
+
+        function createToolUsageHTML(toolUsage) {
+            if (!toolUsage || !toolUsage.tool_calls || toolUsage.tool_calls.length === 0) {
+                return '';
+            }
+
+            let toolHTML = '';
+            
+            toolUsage.tool_calls.forEach((toolCall, index) => {
+                const toolName = toolCall.function?.name || 'Unknown Tool';
+                const toolArgs = toolCall.function?.arguments || '{}';
+
+                // Robustly handle tool result extraction
+                let rawToolResult = 'No result';
+                if (toolCall.content) {
+                    if (typeof toolCall.content === 'string') {
+                        rawToolResult = toolCall.content;
+                    } else if (Array.isArray(toolCall.content) && toolCall.content[0] && toolCall.content[0].text) {
+                        rawToolResult = toolCall.content[0].text;
+                    }
+                }
+                
+                // Create unique ID for this tool call
+                const toolId = `tool-${Date.now()}-${index}`;
+                
+                toolHTML += `
+                    <div class="tool-usage" id="${toolId}">
+                        <div class="tool-header" onclick="toggleToolDetails('${toolId}')">
+                            <div>
+                                <span class="tool-name">${toolName}</span>
+                                <span class="tool-status">Used</span>
+                            </div>
+                            <span class="tool-toggle" id="tool-toggle-${toolId}">▼</span>
+                        </div>
+                        <div class="tool-content" id="tool-content-${toolId}">
+                            <div class="tool-details">
+                                <div class="tool-param">
+                                    <span class="tool-param-label">Parameters:</span>
+                                    <div class="tool-result">${JSON.stringify(JSON.parse(toolArgs), null, 2)}</div>
+                                </div>
+                                <div class="tool-param">
+                                    <span class="tool-result-label">Result:</span>
+                                    <div class="tool-result">${rawToolResult}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return toolHTML;
+        }
+
+        function toggleToolDetails(toolId) {
+            const content = document.getElementById(`tool-content-${toolId}`);
+            const toggle = document.getElementById(`tool-toggle-${toolId}`);
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                toggle.classList.add('expanded');
+            }
+        }
+
+        
+
+        function updateMessageCounter() {
+            const progressBar = document.getElementById('message-progress-bar');
+            const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+            const progressPercentage = (userMessageCount / MAX_MESSAGES) * 100;
+            
+            progressBar.style.width = `${progressPercentage}%`;
+
+            if (userMessageCount >= MAX_MESSAGES) {
+                progressBar.style.background = '#FF3B30';
+            } else {
+                progressBar.style.background = '#007AFF';
+            }
+        }
+
+        function disableInput() {
+            const input = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            
+            input.disabled = true;
+            input.placeholder = 'Conversation limit reached. Start a new chat.';
+            sendBtn.disabled = true;
+        }
+
+        function enableInput() {
+            const input = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            
+            input.disabled = false;
+            input.placeholder = 'Type your message...';
+            autoResize(input);
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            indicator.style.display = 'block';
+            indicator.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            indicator.style.display = 'none';
+        }
+
+        
+
+        function getConversationHistoryForAPI() {
+            // Convert conversation history to the format expected by the API
+            return conversationHistory.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            }));
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            // Count user messages to check limit
+            const userMessageCount = conversationHistory.filter(msg => msg.role === 'user').length;
+            
+            if (!message || isTyping || userMessageCount >= MAX_MESSAGES) return;
+            
+            // Clear input and reset
+            input.value = '';
+            autoResize(input);
+            
+            // Add user message to chat
+            addMessageToChat('user', message);
+            
+            // Show typing indicator
+            isTyping = true;
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        conversation_history: getConversationHistoryForAPI(),
+                        session_id: currentSessionId
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Update session ID if it's a new session
+                if (!currentSessionId) {
+                    currentSessionId = data.session_id;
+                    saveConversationHistory();
+                }
+                
+                // Add assistant response to chat with tool usage
+                addMessageToChat('assistant', data.response, null, true, data.tool_usage);
+                
+                // Check if we've reached the limit
+                if (data.user_message_count >= MAX_MESSAGES) {
+                    disableInput();
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessageToChat('assistant', 'Sorry, there was an error processing your message.');
+            } finally {
+                isTyping = false;
+                hideTypingIndicator();
+            }
+        }
+
+        // Auto-resize textarea on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('message-input');
+            autoResize(textarea);
+        });
+    </script>
+</body>
+</html>
