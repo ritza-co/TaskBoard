@@ -62,7 +62,7 @@ TASKBOARD_SERVER_URL=https://your-app.vercel.app
 
 1. **Clone and Configure**:
    ```bash
-   git clone <repository>
+   git clone https://github.com/ritza-co/TaskBoard.git
    cd TaskBoard
    ```
 
@@ -77,6 +77,18 @@ TASKBOARD_SERVER_URL=https://your-app.vercel.app
    
    # Database configuration
    DATABASE_URL="file:./prisma/dev.db"
+   ```
+
+   For example, if you are using ngrok, you can run the following command to expose port 3000 to the internet:
+
+   ```bash
+   ngrok http 3000
+   ```
+
+   Then, you can update the `TASKBOARD_SERVER_URL` to the ngrok URL:
+
+   ```bash
+   TASKBOARD_SERVER_URL=https://abc123.ngrok.io
    ```
 
 3. **Make TaskBoard Publicly Accessible**:
