@@ -1,0 +1,532 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "TaskBoard API",
+    "version": "1.0.0",
+    "description": "API documentation for TaskBoard application"
+  },
+  "paths": {
+    "/api/chat": {
+      "get": {
+        "summary": "Chat service health check",
+        "description": "Check the health status of the chat service and MCP integration",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "UserIdParam": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "chat_service": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "example": "healthy"
+                        },
+                        "service": {
+                          "type": "string",
+                          "example": "mcp-chat-microservice"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": "healthy",
+                  "chat_service": {
+                    "status": "healthy",
+                    "service": "mcp-chat-microservice"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Chat service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "unhealthy",
+                  "error": "Chat service unavailable"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Send chat message",
+        "description": "Send a message to the MCP-powered AI assistant and receive a response with optional tool usage",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "UserIdParam": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              },
+              "example": {
+                "message": "Can you help me analyze the current deployment status?",
+                "conversation_history": [
+                  {
+                    "role": "user",
+                    "content": "Hello",
+                    "timestamp": "2025-07-31T20:00:00.000Z"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Hi! How can I help you today?",
+                    "timestamp": "2025-07-31T20:00:05.000Z"
+                  }
+                ],
+                "session_id": "445cf28e-b95c-46d5-8af4-c327fe33149b"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully processed chat message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                },
+                "example": {
+                  "response": "I can help you analyze the deployment status. Let me check the current system status using the available tools.",
+                  "session_id": "445cf28e-b95c-46d5-8af4-c327fe33149b",
+                  "user_message_count": 2,
+                  "tool_usage": {
+                    "has_tools": true,
+                    "tool_calls": [
+                      {
+                        "function": {
+                          "name": "deployment_status_check",
+                          "arguments": "{\"environment\": \"production\"}"
+                        },
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "All services are running normally. Last deployment: 2025-07-31T18:30:00Z"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Message is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Failed to process chat request"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items": {
+      "get": {
+        "summary": "Get user's items",
+        "description": "Retrieve all items belonging to the authenticated user, optionally filtered by status",
+        "tags": [
+          "Items"
+        ],
+        "security": [
+          {
+            "UserIdParam": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter items by status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ItemStatus"
+            },
+            "example": "todo"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "User ID (alternative to Bearer token)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Item"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "clh7x1234abcd5678efgh",
+                    "userId": "clh7x1234abcd5678user",
+                    "title": "Complete project documentation",
+                    "details": "Write comprehensive API documentation and user guides",
+                    "status": "todo",
+                    "createdAt": "2025-07-31T20:30:00.000Z"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new item",
+        "description": "Create a new Kanban item for the authenticated user",
+        "tags": [
+          "Items"
+        ],
+        "security": [
+          {
+            "UserIdParam": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemRequest"
+              },
+              "example": {
+                "title": "Implement user authentication",
+                "details": "Add JWT-based authentication with refresh tokens",
+                "status": "todo",
+                "userId": "clh7x1234abcd5678user"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                },
+                "example": {
+                  "id": "clh7x9012qrst3456uvwx",
+                  "userId": "clh7x1234abcd5678user",
+                  "title": "Implement user authentication",
+                  "details": "Add JWT-based authentication with refresh tokens",
+                  "status": "todo",
+                  "createdAt": "2025-07-31T21:45:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Missing title, details, or status"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "summary": "Authenticate user",
+        "description": "Login with username and password to receive user ID token",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCredentials"
+              },
+              "example": {
+                "username": "john_doe",
+                "password": "secure_password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                },
+                "example": {
+                  "userId": "clh7x1234abcd5678efgh"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing username or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Missing username or password"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Invalid credentials"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register": {
+      "post": {
+        "summary": "Register a new user",
+        "description": "Create a new user account with username and password",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCredentials"
+              },
+              "example": {
+                "username": "john_doe",
+                "password": "secure_password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                },
+                "example": {
+                  "userId": "clh7x1234abcd5678efgh"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing username or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Missing username or password"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "User already exists"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {},
+  "tags": []
+}
