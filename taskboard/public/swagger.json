@@ -1,18 +1,44 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "TaskBoard API",
     "version": "1.0.0",
-    "description": "API documentation for TaskBoard application"
+    "description": "A comprehensive API for managing Kanban tasks with integrated MCP (Model Context Protocol) chat functionality.\n\n## Authentication\n\nProtected endpoints require user identification via one of these methods:\n1. **Bearer Token**: `Authorization: Bearer <userId>`\n2. **Query Parameter**: `?userId=<userId>`  \n3. **Request Body**: Include `userId` field in JSON body\n\nThis flexible authentication supports both web applications and MCP integrations.\n\n## Features\n\n- User registration and authentication\n- CRUD operations for Kanban items (todo, doing, done)  \n- MCP-powered AI chat assistant integration\n- Session-based conversation management\n- Tool usage tracking and display"
   },
+  "servers": [
+    {
+      "url": "${API_BASE_URL:-http://localhost:3000}",
+      "description": "API server (configurable via API_BASE_URL environment variable)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication endpoints"
+    },
+    {
+      "name": "Items",
+      "description": "Kanban item management endpoints"
+    },
+    {
+      "name": "Chat",
+      "description": "MCP-powered AI chat endpoints"
+    }
+  ],
   "paths": {
     "/api/chat": {
       "get": {
         "summary": "Chat service health check",
         "description": "Check the health status of the chat service and MCP integration",
+        "operationId": "chat_health_check",
         "tags": [
           "Chat"
         ],
+        "x-gram": {
+          "name": "check_chat_service_health",
+          "description": "<context>\nThis endpoint checks if the MCP-powered chat service is healthy and available.\nUse this to verify the chat functionality is working before attempting to send messages.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n</prerequisites>\n",
+          "responseFilterType": "jq"
+        },
         "security": [
           {
             "UserIdParam": []
@@ -87,9 +113,15 @@
       "post": {
         "summary": "Send chat message",
         "description": "Send a message to the MCP-powered AI assistant and receive a response with optional tool usage",
+        "operationId": "send_chat_message",
         "tags": [
           "Chat"
         ],
+        "x-gram": {
+          "name": "send_chat_message",
+          "description": "<context>\nThis endpoint sends a message to the MCP-powered AI assistant and returns a response.\nThe AI can use various tools to help with task management, deployment analysis, and other operations.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n- Message content is required\n- Conversation history is optional but helps maintain context\n</prerequisites>\n<usage>\n- Use this to ask questions about your tasks, deployment status, or get AI assistance\n- The AI can access your task data and perform actions on your behalf\n- Session ID helps maintain conversation context across multiple messages\n</usage>\n",
+          "responseFilterType": "jq"
+        },
         "security": [
           {
             "UserIdParam": []
@@ -200,9 +232,15 @@
       "get": {
         "summary": "Get user's items",
         "description": "Retrieve all items belonging to the authenticated user, optionally filtered by status",
+        "operationId": "get_user_items",
         "tags": [
           "Items"
         ],
+        "x-gram": {
+          "name": "get_user_tasks",
+          "description": "<context>\nThis endpoint retrieves all Kanban tasks belonging to the authenticated user.\nTasks can be filtered by status (todo, doing, done) to focus on specific work stages.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n</prerequisites>\n<usage>\n- Use without status parameter to get all tasks\n- Use status=todo to get pending tasks\n- Use status=doing to get in-progress tasks  \n- Use status=done to get completed tasks\n</usage>\n",
+          "responseFilterType": "jq"
+        },
         "security": [
           {
             "UserIdParam": []
@@ -222,8 +260,8 @@
           {
             "name": "userId",
             "in": "query",
-            "description": "User ID (alternative to Bearer token)",
-            "required": false,
+            "description": "User ID (required for authentication)",
+            "required": true,
             "schema": {
               "type": "string"
             },
@@ -285,9 +323,15 @@
       "post": {
         "summary": "Create new item",
         "description": "Create a new Kanban item for the authenticated user",
+        "operationId": "create_user_item",
         "tags": [
           "Items"
         ],
+        "x-gram": {
+          "name": "create_task",
+          "description": "<context>\nThis endpoint creates a new Kanban task for the authenticated user.\nTasks can be created in any status (todo, doing, done) and will be associated with the user's account.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n- Title, details, and status are required fields\n</prerequisites>\n<usage>\n- Use status=todo for new tasks that need to be started\n- Use status=doing for tasks currently in progress\n- Use status=done for completed tasks\n- Title should be concise (max 200 characters)\n- Details can include full description (max 1000 characters)\n</usage>\n",
+          "responseFilterType": "jq"
+        },
         "security": [
           {
             "UserIdParam": []
@@ -374,10 +418,16 @@
       "post": {
         "summary": "Authenticate user",
         "description": "Login with username and password to receive user ID token",
+        "operationId": "user_login",
         "tags": [
           "Authentication"
         ],
         "security": [],
+        "x-gram": {
+          "name": "login_user",
+          "description": "<context>\nThis endpoint authenticates a user with their username and password.\nUpon successful authentication, it returns a user ID that serves as the authentication token.\n</context>\n<prerequisites>\n- User must have an existing account (use register endpoint to create one)\n- Username and password are required\n</prerequisites>\n<usage>\n- Use the returned userId as a query parameter for subsequent API calls\n- Store the userId securely as it provides access to the user's data\n- Pass the userId as a query parameter in all authenticated requests\n</usage>\n",
+          "responseFilterType": "jq"
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -452,10 +502,16 @@
       "post": {
         "summary": "Register a new user",
         "description": "Create a new user account with username and password",
+        "operationId": "user_register",
         "tags": [
           "Authentication"
         ],
         "security": [],
+        "x-gram": {
+          "name": "register_user",
+          "description": "<context>\nThis endpoint creates a new user account with a username and password.\nUpon successful registration, it returns a user ID that serves as the authentication token.\n</context>\n<prerequisites>\n- Username must be unique (3-50 characters)\n- Password must be secure (6-100 characters)\n- Username and password are required\n</prerequisites>\n<usage>\n- Use this to create new user accounts\n- The returned userId serves as the authentication token\n- Store the userId securely as it provides access to the user's data\n- Pass the userId as a query parameter in all authenticated requests\n</usage>\n",
+          "responseFilterType": "jq"
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -525,8 +581,513 @@
           }
         }
       }
+    },
+    "/api/items/{id}": {
+      "get": {
+        "summary": "Get specific item",
+        "description": "Retrieve a specific Kanban item by ID",
+        "operationId": "get_item_by_id",
+        "tags": [
+          "Items"
+        ],
+        "x-gram": {
+          "name": "get_task_by_id",
+          "description": "<context>\nThis endpoint retrieves a specific Kanban task by its unique ID.\nOnly tasks belonging to the authenticated user can be accessed.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n- Valid task ID must be provided in the URL path\n</prerequisites>\n",
+          "responseFilterType": "jq"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the item",
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678efgh"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "User ID (required for authentication)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                },
+                "example": {
+                  "id": "clh7x1234abcd5678efgh",
+                  "userId": "clh7x1234abcd5678user",
+                  "title": "Complete project documentation",
+                  "details": "Write comprehensive API documentation and user guides",
+                  "status": "todo",
+                  "createdAt": "2025-07-31T20:30:00.000Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Item not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update item",
+        "description": "Update an existing Kanban item",
+        "operationId": "update_item",
+        "tags": [
+          "Items"
+        ],
+        "x-gram": {
+          "name": "update_task",
+          "description": "<context>\nThis endpoint updates an existing Kanban task. You can modify the title, details, status, or any combination of these fields.\nOnly tasks belonging to the authenticated user can be updated.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n- Valid task ID must be provided in the URL path\n- At least one field (title, details, or status) should be provided for update\n</prerequisites>\n<usage>\n- Use to move tasks between columns (todo → doing → done)\n- Use to update task details as work progresses\n- Use to correct typos or add more information to existing tasks\n</usage>\n",
+          "responseFilterType": "jq"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the item",
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678efgh"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemRequest"
+              },
+              "example": {
+                "title": "Updated task title",
+                "details": "Updated task details with more information",
+                "status": "doing",
+                "userId": "clh7x1234abcd5678user"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                },
+                "example": {
+                  "id": "clh7x1234abcd5678efgh",
+                  "userId": "clh7x1234abcd5678user",
+                  "title": "Updated task title",
+                  "details": "Updated task details with more information",
+                  "status": "doing",
+                  "createdAt": "2025-07-31T20:30:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Invalid status value"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Item not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete item",
+        "description": "Delete a Kanban item",
+        "operationId": "delete_item",
+        "tags": [
+          "Items"
+        ],
+        "x-gram": {
+          "name": "delete_task",
+          "description": "<context>\nThis endpoint permanently deletes a Kanban task from the user's board.\nThis action cannot be undone, so use with caution.\n</context>\n<prerequisites>\n- userId parameter is required for authentication\n- Valid task ID must be provided in the URL path\n</prerequisites>\n<usage>\n- Use to remove completed tasks that are no longer needed\n- Use to clean up duplicate or incorrect tasks\n- Consider moving tasks to 'done' status instead of deleting if you want to keep a record\n</usage>\n",
+          "responseFilterType": "jq"
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the item",
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678efgh"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "User ID (required for authentication)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "clh7x1234abcd5678user"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Item successfully deleted"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Item not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
-  "components": {},
-  "tags": []
+  "components": {
+    "schemas": {
+      "UserCredentials": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "description": "Unique username for the account",
+            "example": "john_doe"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 100,
+            "description": "Password for the account",
+            "example": "secure_password123"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": [
+          "userId"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Unique identifier for the user (used as bearer token)",
+            "example": "clh7x1234abcd5678efgh"
+          }
+        }
+      },
+      "ItemStatus": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "doing",
+          "done"
+        ],
+        "description": "Current status of the item in the Kanban board"
+      },
+      "Item": {
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "details",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the item"
+          },
+          "userId": {
+            "type": "string",
+            "description": "ID of the user who owns this item"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Title of the item"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Detailed description"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateItemRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "details",
+          "status"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (optional if provided via Bearer token or query param)"
+          }
+        }
+      },
+      "UpdateItemRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (optional if provided via Bearer token or query param)"
+          }
+        }
+      },
+      "ChatRequest": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "conversation_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "assistant"
+                  ]
+                },
+                "content": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "session_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID (optional if provided via Bearer token or query param)"
+          }
+        }
+      },
+      "ChatResponse": {
+        "type": "object",
+        "required": [
+          "response",
+          "session_id",
+          "user_message_count"
+        ],
+        "properties": {
+          "response": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "user_message_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "tool_usage": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "UserIdParam": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "userId",
+        "description": "User ID parameter for authentication"
+      }
+    }
+  }
 }

@@ -8,8 +8,28 @@ import { hashPassword } from '@/lib/auth';
  *   post:
  *     summary: Register a new user
  *     description: Create a new user account with username and password
+ *     operationId: user_register
  *     tags: [Authentication]
  *     security: []
+ *     x-gram:
+ *       name: register_user
+ *       description: |
+ *         <context>
+ *         This endpoint creates a new user account with a username and password.
+ *         Upon successful registration, it returns a user ID that serves as the authentication token.
+ *         </context>
+ *         <prerequisites>
+ *         - Username must be unique (3-50 characters)
+ *         - Password must be secure (6-100 characters)
+ *         - Username and password are required
+ *         </prerequisites>
+ *         <usage>
+ *         - Use this to create new user accounts
+ *         - The returned userId serves as the authentication token
+ *         - Store the userId securely as it provides access to the user's data
+ *         - Pass the userId as a query parameter in all authenticated requests
+ *         </usage>
+ *       responseFilterType: jq
  *     requestBody:
  *       required: true
  *       content:

@@ -1,18 +1,65 @@
-const { createSwaggerSpec } = require('next-swagger-doc');
+const swaggerJSDoc = require('swagger-jsdoc');
 const fs = require('fs');
 const path = require('path');
 
-const spec = createSwaggerSpec({
-  apiFolder: 'src/app/api', // For Next.js 13+ with app directory
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'TaskBoard API',
-      version: '1.0.0',
-      description: 'API documentation for TaskBoard application',
-    },
+// Swagger definition
+const swaggerDefinition = {
+  openapi: '3.1.0',
+  info: {
+    title: 'TaskBoard API',
+    version: '1.0.0',
+    description: `A comprehensive API for managing Kanban tasks with integrated MCP (Model Context Protocol) chat functionality.
+
+## Authentication
+
+Protected endpoints require user identification via one of these methods:
+1. **Bearer Token**: \`Authorization: Bearer <userId>\`
+2. **Query Parameter**: \`?userId=<userId>\`  
+3. **Request Body**: Include \`userId\` field in JSON body
+
+This flexible authentication supports both web applications and MCP integrations.
+
+## Features
+
+- User registration and authentication
+- CRUD operations for Kanban items (todo, doing, done)  
+- MCP-powered AI chat assistant integration
+- Session-based conversation management
+- Tool usage tracking and display`,
   },
-});
+  servers: [
+    {
+      url: '${API_BASE_URL:-http://localhost:3000}',
+      description: 'API server (configurable via API_BASE_URL environment variable)'
+    }
+  ],
+  tags: [
+    {
+      name: 'Authentication',
+      description: 'User authentication endpoints'
+    },
+    {
+      name: 'Items',
+      description: 'Kanban item management endpoints'
+    },
+    {
+      name: 'Chat',
+      description: 'MCP-powered AI chat endpoints'
+    }
+  ]
+};
+
+// Options for swagger-jsdoc
+const options = {
+  definition: swaggerDefinition,
+  apis: [
+    './src/app/api/*/route.ts',
+    './src/app/api/*/*/route.ts', // For nested routes like items/[id]
+  ],
+};
+
+// Generate swagger specification
+const specs = swaggerJSDoc(options);
 
 // Ensure public directory exists
 const publicDir = path.join(process.cwd(), 'public');
@@ -22,6 +69,12 @@ if (!fs.existsSync(publicDir)) {
 
 // Write the spec file
 const outputPath = path.join(publicDir, 'swagger.json');
-fs.writeFileSync(outputPath, JSON.stringify(spec, null, 2));
+fs.writeFileSync(outputPath, JSON.stringify(specs, null, 2));
 
 console.log(`✅ OpenAPI spec generated at ${outputPath}`);
+console.log(`📋 Generated spec includes:`);
+console.log(`   - OpenAPI 3.1.0`);
+console.log(`   - Components from JSDoc annotations`);
+console.log(`   - All endpoints with x-gram extensions`);
+console.log(`   - Field validation constraints`);
+console.log(`   - Required userId parameters`);

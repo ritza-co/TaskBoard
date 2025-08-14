@@ -8,8 +8,26 @@ import { comparePassword } from '@/lib/auth';
  *   post:
  *     summary: Authenticate user
  *     description: Login with username and password to receive user ID token
+ *     operationId: user_login
  *     tags: [Authentication]
  *     security: []
+ *     x-gram:
+ *       name: login_user
+ *       description: |
+ *         <context>
+ *         This endpoint authenticates a user with their username and password.
+ *         Upon successful authentication, it returns a user ID that serves as the authentication token.
+ *         </context>
+ *         <prerequisites>
+ *         - User must have an existing account (use register endpoint to create one)
+ *         - Username and password are required
+ *         </prerequisites>
+ *         <usage>
+ *         - Use the returned userId as a query parameter for subsequent API calls
+ *         - Store the userId securely as it provides access to the user's data
+ *         - Pass the userId as a query parameter in all authenticated requests
+ *         </usage>
+ *       responseFilterType: jq
  *     requestBody:
  *       required: true
  *       content:

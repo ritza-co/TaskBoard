@@ -6,7 +6,19 @@ import { NextRequest, NextResponse } from 'next/server';
  *   get:
  *     summary: Chat service health check
  *     description: Check the health status of the chat service and MCP integration
+ *     operationId: chat_health_check
  *     tags: [Chat]
+ *     x-gram:
+ *       name: check_chat_service_health
+ *       description: |
+ *         <context>
+ *         This endpoint checks if the MCP-powered chat service is healthy and available.
+ *         Use this to verify the chat functionality is working before attempting to send messages.
+ *         </context>
+ *         <prerequisites>
+ *         - userId parameter is required for authentication
+ *         </prerequisites>
+ *       responseFilterType: jq
  *     security:
  *       - UserIdParam: []
  *     responses:
@@ -54,7 +66,26 @@ import { NextRequest, NextResponse } from 'next/server';
  *   post:
  *     summary: Send chat message
  *     description: Send a message to the MCP-powered AI assistant and receive a response with optional tool usage
+ *     operationId: send_chat_message
  *     tags: [Chat]
+ *     x-gram:
+ *       name: send_chat_message
+ *       description: |
+ *         <context>
+ *         This endpoint sends a message to the MCP-powered AI assistant and returns a response.
+ *         The AI can use various tools to help with task management, deployment analysis, and other operations.
+ *         </context>
+ *         <prerequisites>
+ *         - userId parameter is required for authentication
+ *         - Message content is required
+ *         - Conversation history is optional but helps maintain context
+ *         </prerequisites>
+ *         <usage>
+ *         - Use this to ask questions about your tasks, deployment status, or get AI assistance
+ *         - The AI can access your task data and perform actions on your behalf
+ *         - Session ID helps maintain conversation context across multiple messages
+ *         </usage>
+ *       responseFilterType: jq
  *     security:
  *       - UserIdParam: []
  *     requestBody:
