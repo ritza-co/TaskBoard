@@ -9,7 +9,7 @@ mcp:
       command: "npx"
       args: [
         "mcp-remote",
-        "https://app.getgram.ai/mcp/ritza-rzx-taskboard",
+        "https://app.getgram.ai/mcp/<your-gram-url>",
         "--header",
         "MCP-TASKBOARD-SERVER-URL:${TASKBOARD_SERVER_URL}"
       ]
