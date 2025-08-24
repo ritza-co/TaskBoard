@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
-import ChatComponent from '@/components/ChatComponent';
 import TaskModal from '@/components/TaskModal';
 
 interface Item {
@@ -258,8 +257,6 @@ const DashboardPage: React.FC = () => {
           />
         </div>
 
-        {/* Floating Chat Component */}
-        {userId && <ChatComponent userId={userId} onChatClose={() => fetchItems(true)} />}
 
         {/* Task Modal */}
         <TaskModal

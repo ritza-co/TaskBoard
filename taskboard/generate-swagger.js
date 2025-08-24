@@ -8,24 +8,18 @@ const swaggerDefinition = {
   info: {
     title: 'TaskBoard API',
     version: '1.0.0',
-    description: `A comprehensive API for managing Kanban tasks with integrated MCP (Model Context Protocol) chat functionality.
+    description: `A comprehensive API for managing Kanban tasks.
 
 ## Authentication
 
 Protected endpoints require user identification via one of these methods:
-1. **Bearer Token**: \`Authorization: Bearer <userId>\`
-2. **Query Parameter**: \`?userId=<userId>\`  
-3. **Request Body**: Include \`userId\` field in JSON body
-
-This flexible authentication supports both web applications and MCP integrations.
+1. **Query Parameter**: \`?userId=<userId>\`  
+2. **Request Body**: Include \`userId\` field in JSON body
 
 ## Features
 
 - User registration and authentication
-- CRUD operations for Kanban items (todo, doing, done)  
-- MCP-powered AI chat assistant integration
-- Session-based conversation management
-- Tool usage tracking and display`,
+- CRUD operations for Kanban items (todo, doing, done)`,
   },
   servers: [
     {
@@ -41,10 +35,6 @@ This flexible authentication supports both web applications and MCP integrations
     {
       name: 'Items',
       description: 'Kanban item management endpoints'
-    },
-    {
-      name: 'Chat',
-      description: 'MCP-powered AI chat endpoints'
     }
   ]
 };

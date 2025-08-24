@@ -1,6 +1,6 @@
-# TaskBoard (Minimal Kanban MCP Demo)
+# TaskBoard
 
-This project is a minimal Kanban-style task manager built with Next.js, SQLite, and Docker, with clean separation of data per user. The focus is on simplicity, with a stable API and clear data ownership, so it can be easily wired up to an MCP server.
+This project is a minimal Kanban-style task manager built with Next.js, SQLite, and Docker, with clean separation of data per user. The focus is on simplicity, with a stable API and clear data ownership.
 
 ## Getting Started
 
@@ -75,7 +75,7 @@ This project is a minimal Kanban-style task manager built with Next.js, SQLite, 
 
 /components
   /KanbanBoard.tsx      → Group items into To Do, Doing, Done columns
-  /ChatPlaceholder.tsx  → Static div for future MCP use
+  /TaskModal.tsx        → Modal for creating new tasks
 
 /lib
   prisma.ts             → Prisma client setup
