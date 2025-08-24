@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
-import ChatComponent from '@/components/ChatPlaceholder';
+import ChatComponent from '@/components/ChatComponent';
 import TaskModal from '@/components/TaskModal';
 
 interface Item {
@@ -19,9 +19,10 @@ const DashboardPage: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
-  const fetchItems = async () => {
+  const fetchItems = async (isRefresh = false) => {
     const userIdFromStorage = localStorage.getItem('userId');
     if (!userIdFromStorage) {
       router.push('/login');
@@ -29,12 +30,17 @@ const DashboardPage: React.FC = () => {
     }
     setUserId(userIdFromStorage);
 
+    if (isRefresh) {
+      setIsRefreshing(true);
+    }
+
     try {
       const response = await fetch(`/api/items?userId=${encodeURIComponent(userIdFromStorage)}`);
 
       if (response.ok) {
         const data = await response.json();
         setItems(data);
+        setError(null); // Clear any existing errors on successful refresh
       } else {
         const errData = await response.json();
         setError(errData.message || 'Failed to fetch items');
@@ -44,6 +50,9 @@ const DashboardPage: React.FC = () => {
       setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
+      if (isRefresh) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -72,7 +81,10 @@ const DashboardPage: React.FC = () => {
 
       if (response.ok) {
         setIsModalOpen(false);
-        fetchItems(); // Re-fetch items to update the board
+        // Small delay to allow modal close animation, then refresh for new item animation
+        setTimeout(() => {
+          fetchItems(true);
+        }, 150);
       } else {
         const errData = await response.json();
         setError(errData.message || 'Failed to create item');
@@ -126,7 +138,10 @@ const DashboardPage: React.FC = () => {
       });
 
       if (response.ok) {
-        fetchItems(); // Re-fetch items to update the board
+        // Small delay to allow status transition animation
+        setTimeout(() => {
+          fetchItems(true);
+        }, 100);
       } else {
         const errData = await response.json();
         setError(errData.message || 'Failed to update item status');
@@ -183,7 +198,15 @@ const DashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">TaskBoard</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900">TaskBoard</h1>
+                {isRefreshing && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                    <span className="text-xs">Refreshing...</span>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
                 <span className="font-medium">{taskStats.total} tasks</span>
                 <span className="font-medium">{taskStats.done} completed</span>
@@ -236,7 +259,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Floating Chat Component */}
-        {userId && <ChatComponent userId={userId} />}
+        {userId && <ChatComponent userId={userId} onChatClose={() => fetchItems(true)} />}
 
         {/* Task Modal */}
         <TaskModal

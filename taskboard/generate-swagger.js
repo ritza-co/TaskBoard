@@ -29,8 +29,8 @@ This flexible authentication supports both web applications and MCP integrations
   },
   servers: [
     {
-      url: '${API_BASE_URL:-http://localhost:3000}',
-      description: 'API server (configurable via API_BASE_URL environment variable)'
+      url: 'http://localhost:3000',
+      description: 'Development server'
     }
   ],
   tags: [

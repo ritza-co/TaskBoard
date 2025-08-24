@@ -29,7 +29,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/swagger-jsdoc": "^6.0.4",
-    "next-swagger-doc": "^0.4.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

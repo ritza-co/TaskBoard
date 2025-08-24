@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Item {
   id: string;
@@ -16,6 +16,49 @@ interface KanbanBoardProps {
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDeleteItem, handleUpdateItemStatus }) => {
   const [activeTab, setActiveTab] = useState<'todo' | 'doing' | 'done'>('todo');
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  const [newItems, setNewItems] = useState<Set<string>>(new Set());
+  const previousItemsRef = useRef<Item[]>([]);
+
+  // Track new items for animation
+  useEffect(() => {
+    const previousIds = new Set(previousItemsRef.current.map(item => item.id));
+    const currentIds = new Set(items.map(item => item.id));
+    
+    // Find newly added items
+    const newItemIds = items
+      .filter(item => !previousIds.has(item.id))
+      .map(item => item.id);
+    
+    if (newItemIds.length > 0) {
+      setNewItems(new Set(newItemIds));
+      // Remove from new items after animation completes
+      setTimeout(() => {
+        setNewItems(prev => {
+          const updated = new Set(prev);
+          newItemIds.forEach(id => updated.delete(id));
+          return updated;
+        });
+      }, 500); // Match animation duration
+    }
+    
+    previousItemsRef.current = items;
+  }, [items]);
+
+  // Enhanced delete handler with animation
+  const handleDeleteWithAnimation = (itemId: string) => {
+    setDeletingItems(prev => new Set([...prev, itemId]));
+    
+    // Delay actual deletion to allow animation to play
+    setTimeout(() => {
+      handleDeleteItem(itemId);
+      setDeletingItems(prev => {
+        const updated = new Set(prev);
+        updated.delete(itemId);
+        return updated;
+      });
+    }, 300); // Match animation duration
+  };
 
   // Helper functions for arrow navigation
   const canMoveLeft = (status: 'todo' | 'doing' | 'done') => {
@@ -66,12 +109,24 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDelete
           <p className="text-sm">No tasks</p>
         </div>
       ) : (
-        itemsToRender.map((item, index) => (
-          <div 
-            key={item.id} 
-            className="bg-white rounded-xl border border-gray-100 p-5 transition-all duration-200"
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
+        itemsToRender.map((item, index) => {
+          const isNew = newItems.has(item.id);
+          const isDeleting = deletingItems.has(item.id);
+          
+          return (
+            <div 
+              key={item.id} 
+              className={`bg-white rounded-xl border border-gray-100 p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                isNew ? 'animate-task-appear' : 
+                isDeleting ? 'animate-task-disappear' : 
+                'animate-slide-down'
+              }`}
+              style={{ 
+                animationDelay: isNew ? `${index * 150}ms` : isDeleting ? '0ms' : `${index * 50}ms`,
+                pointerEvents: isDeleting ? 'none' : 'auto',
+                opacity: isDeleting ? 0.7 : 1
+              }}
+            >
             {/* Task Header */}
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-semibold text-gray-900 text-base leading-tight flex-1 pr-3">
@@ -82,7 +137,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDelete
                 {canMoveLeft(item.status) && (
                   <button 
                     onClick={() => handleMoveLeft(item.id, item.status)} 
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150"
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 hover:scale-110 transition-all duration-200"
                     aria-label="Move left"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +150,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDelete
                 {canMoveRight(item.status) && (
                   <button 
                     onClick={() => handleMoveRight(item.id, item.status)} 
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors duration-150"
+                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 hover:scale-110 transition-all duration-200"
                     aria-label="Move right"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,9 +161,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDelete
                 
                 {/* Delete Button - Always visible */}
                 <button 
-                  onClick={() => handleDeleteItem(item.id)} 
-                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-150"
+                  onClick={() => handleDeleteWithAnimation(item.id)} 
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100"
                   aria-label="Delete task"
+                  disabled={isDeleting}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -140,7 +196,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ items, setItems, handleDelete
               </span>
             </div>
           </div>
-        ))
+          );
+        })
       )}
     </div>
   );

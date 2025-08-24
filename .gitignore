@@ -1,2 +1,22 @@
 /.DS_Store
 .env
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Generated files
+*/public/swagger.json
+openapi.yaml
+redoc-static.html
+
+# Build outputs
+.next/
+out/
